@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text;
 
 static class Program
@@ -7,32 +6,27 @@ static class Program
 	static void Main()
 	{
 		StringBuilder sb = new();
-		Stopwatch sw = Stopwatch.StartNew();
+		Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.RealTime;
+		Thread.CurrentThread.Priority = ThreadPriority.Highest;
 		while (true) {
+			var before = NTPTime.NetLocalDiff;
 			NTPTime.SyncNetworkTime();
-			sw.Restart();
+			var change = NTPTime.NetLocalDiff - before;
 			sb.Clear();
-			sb.Append("当前时区本地时间: ");
+			sb.Append("本地时间: ");
 			sb.AppendLine(FmtDate(DateTime.Now));
-			sb.Append("当前时区网络时间: ");
-			sb.AppendLine(FmtDate(NTPTime.RealTimeLocalTimeZone));
-			sb.Append("当前UTC网络时间: ");
-			sb.AppendLine(FmtDate(NTPTime.RealTimeUTC));
-			sb.Append("网络与本地时差: ");
+			sb.Append("网络时间: ");
+			sb.AppendLine(FmtDate(NTPTime.RealTimeUTC.ToLocalTime()));
+			sb.Append("时差: ");
 			sb.Append(NTPTime.NetLocalDiff.TotalMilliseconds.ToString("F1"));
-			sb.Append("ms");
+			sb.AppendLine("ms");
+			sb.Append("变化: ");
+			sb.Append(change.TotalMilliseconds.ToString("F1"));
+			sb.AppendLine("ms");
 			Console.Clear();
 			Console.WriteLine(sb);
-			Delay(1000, sw);
+			Thread.Sleep(900);
 		}
-	}
-
-	static void Delay(int ms, Stopwatch? recordingSw = null)
-	{
-		recordingSw ??= Stopwatch.StartNew();
-		long longMs = ms - recordingSw.ElapsedMilliseconds;
-		Thread.Sleep((int)((longMs * 7) >> 3));
-		while(recordingSw.ElapsedMilliseconds < ms) { }
 	}
 
 	static string FmtDate(DateTime dt) => dt.ToString("yyy/M/d H:mm:ss.fff K");
